@@ -1,17 +1,19 @@
 version: "3"
 services:
- vampi-secure:
-  build: ./
-  container_name: vampi-secure
-  ports:
-   - 5001:5000
-  environment:
-   - vulnerable=0
+  vampi-secure:
+    image: 491489166083.dkr.ecr.eu-west-1.amazonaws.com/mr10usd:vampi-secure-latest
+    build: ./
+    container_name: vampi-secure
+    ports:
+      - 5001:5000
+    environment:
+      - vulnerable=0
 
- vampi-vulnerable:
-  build: ./
-  container_name: vampi-vulnerable
-  ports:
-   - 5002:5000
-  environment:
-   - vulnerable=1
+  vampi-vulnerable:
+    image: 491489166083.dkr.ecr.eu-west-1.amazonaws.com/mr10usd:vampi-vulnerable-latest
+    build: ./
+    container_name: vampi-vulnerable
+    ports:
+      - 5002:5000
+    environment:
+      - vulnerable=1

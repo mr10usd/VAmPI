@@ -1,56 +1,37 @@
 # .azure-pipelines.yml
 trigger:
-- main  # Trigger the pipeline on commits to the main branch
+  - main # Trigger the pipeline on commits to the main branch
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: "ubuntu-latest"
 
 variables:
-  AWS_REGION: 'eu-west-1'  # Your AWS region
-  ECR_REPOSITORY: 'mr10usd'  # Your ECR repository name
-  IMAGE_TAG: 'latest'  # You can use other tags like $(Build.BuildId) for unique tags
-  AWS_ACCOUNT_ID: '491489166083'
-  COMPOSE_FILE: 'docker-compose.yml'
+  AWS_REGION: "eu-west-1" # Your AWS region
+  ECR_REPOSITORY_SECURE: "mr10usd:vampi-secure-latest" # Your ECR repository for the secure image
+  ECR_REPOSITORY_VULNERABLE: "mr10usd:vampi-vulnerable-latest" # Your ECR repository for the vulnerable image
+  IMAGE_TAG: "latest" # You can use other tags like $(Build.BuildId) for unique tags
+  AWS_ACCOUNT_ID: "491489166083"
+  COMPOSE_FILE: "docker-compose.yml"
 
 steps:
-- script: |
-    echo "Logging into AWS ECR"
-    aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
-  displayName: 'AWS ECR Login'
-  env:
-    AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-    AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+  - script: |
+      echo "Logging into AWS ECR"
+      aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+    displayName: "AWS ECR Login"
+    env:
+      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
 
-- task: DockerCompose@0
-  inputs:
-    containerregistrytype: 'Container Registry'
-    dockerRegistryEndpoint: 'AWS ECR'
-    dockerComposeFile: '$(COMPOSE_FILE)'
-    action: 'Build services'
-    addPipelineDataVolumes: false
+  - task: DockerCompose@0
+    inputs:
+      containerregistrytype: "Container Registry"
+      dockerRegistryEndpoint: "AWS ECR"
+      dockerComposeFile: "$(COMPOSE_FILE)"
+      action: "Build services"
+      addPipelineDataVolumes: false
 
-- task: DockerCompose@0
-  inputs:
-    containerregistrytype: 'Container Registry'
-    dockerRegistryEndpoint: 'AWS ECR'
-    dockerComposeFile: '$(COMPOSE_FILE)'
-    action: 'Run services'
-    detached: true
-
-# Ensure the API is up and running
-- script: |
-    sleep 30  # Wait for services to be up
-    curl -f http://localhost:5000/api/health  # Adjust the URL and endpoint to your API's health check
-  displayName: 'Check if API is reachable'
-
-- task: DockerCompose@0
-  inputs:
-    containerregistrytype: 'Container Registry'
-    dockerRegistryEndpoint: 'AWS ECR'
-    dockerComposeFile: '$(COMPOSE_FILE)'
-    action: 'Push services'
-
-- task: DockerCompose@0
-  inputs:
-    containerregistrytype: 'Container Registry'
-    dockerRegistryEndpoint: '
+  - task: DockerCompose@0
+    inputs:
+      containerregistrytype: "Container Registry"
+      dockerRegistryEndpoint: "AWS ECR"
+      dockerComposeFile:
