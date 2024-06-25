@@ -81,4 +81,22 @@ steps:
       detached: true
 
   # Ensure the API is up and running
-  -
+  - script: |
+      sleep 30  # Wait for services to be up
+      curl -f http://localhost:5001/api/health  # Adjust the URL and endpoint to your API's health check
+      curl -f http://localhost:5002/api/health  # Adjust the URL and endpoint to your API's health check
+    displayName: "Check if APIs are reachable"
+
+  - task: DockerCompose@0
+    inputs:
+      containerregistrytype: "Container Registry"
+      dockerRegistryEndpoint: "AWS ECR"
+      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
+      action: "Push services"
+
+  - task: DockerCompose@0
+    inputs:
+      containerregistrytype: "Container Registry"
+      dockerRegistryEndpoint: "AWS ECR"
+      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
+      action: "Down services"
