@@ -48,11 +48,11 @@ steps:
       AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
       AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
 
-  # New step to list files and confirm the presence of docker-compose.yml
+  # New step to list all files in the source directory and subdirectories
   - script: |
-      echo "Listing files in the source directory"
-      ls -la $(Build.SourcesDirectory)
-    displayName: "List files in source directory"
+      echo "Listing all files in the source directory and subdirectories"
+      find $(Build.SourcesDirectory) -type f
+    displayName: "List all files in source directory and subdirectories"
 
   # New step to display the contents of docker-compose.yml for debugging
   - script: |
