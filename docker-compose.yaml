@@ -1,105 +1,19 @@
-# .azure-pipelines.yml
-trigger:
-  - main # Trigger the pipeline on commits to the main branch
+version: "3"
+services:
+  vampi-secure:
+    image: 491489166083.dkr.ecr.eu-west-1.amazonaws.com/mr10usd:vampi-secure-latest
+    build: ./
+    container_name: vampi-secure
+    ports:
+      - 5001:5000
+    environment:
+      - vulnerable=0
 
-pool:
-  vmImage: "ubuntu-latest"
-
-variables:
-  AWS_REGION: "eu-west-1" # Your AWS region
-  ECR_REPOSITORY_SECURE: "mr10usd:vampi-secure-latest" # Your ECR repository for the secure image
-  ECR_REPOSITORY_VULNERABLE: "mr10usd:vampi-vulnerable-latest" # Your ECR repository for the vulnerable image
-  IMAGE_TAG: "latest" # You can use other tags like $(Build.BuildId) for unique tags
-  AWS_ACCOUNT_ID: "491489166083"
-  COMPOSE_FILE: "docker-compose.yaml" # Ensure this matches the actual file name
-
-steps:
-  - script: |
-      echo "Checking AWS CLI version"
-      aws --version || (curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install)
-      aws --version
-    displayName: "Check and Install AWS CLI if necessary"
-
-  # Debug step to check if AWS credentials are available
-  - script: |
-      echo "AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID"
-      echo "AWS_SECRET_ACCESS_KEY is set: ${AWS_SECRET_ACCESS_KEY+yes}" || echo "AWS_SECRET_ACCESS_KEY is not set"
-    displayName: "Debug AWS Credentials"
-    env:
-      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-
-  - script: |
-      echo "Configuring AWS credentials"
-      aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-      aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-      aws configure set default.region $AWS_REGION
-      aws configure list
-    displayName: "Configure AWS Credentials"
-    env:
-      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-
-  - script: |
-      echo "Logging into AWS ECR"
-      aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-    displayName: "AWS ECR Login"
-    env:
-      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-
-  # New step to list all files in the build directory and subdirectories
-  - script: |
-      echo "Listing all files in the build directory and subdirectories"
-      find $(Build.SourcesDirectory) -type f
-    displayName: "List all files in build directory and subdirectories"
-
-  # New step to display the contents of docker-compose.yaml for debugging
-  - script: |
-      echo "Displaying contents of docker-compose.yaml"
-      if [ -f "$(Build.SourcesDirectory)/$(COMPOSE_FILE)" ]; then
-        cat $(Build.SourcesDirectory)/$(COMPOSE_FILE)
-      else
-        echo "File not found: $(Build.SourcesDirectory)/$(COMPOSE_FILE)"
-      fi
-    displayName: "Display docker-compose.yaml contents"
-
-  - task: DockerCompose@0
-    inputs:
-      containerregistrytype: "Container Registry"
-      dockerRegistryEndpoint: "AWS ECR"
-      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
-      action: "Build services"
-      addPipelineDataVolumes: false
-
-  - task: DockerCompose@0
-    inputs:
-      containerregistrytype: "Container Registry"
-      dockerRegistryEndpoint: "AWS ECR"
-      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
-      action: "Push services"
-
-  - task: DockerCompose@0
-    inputs:
-      containerregistrytype: "Container Registry"
-      dockerRegistryEndpoint: "AWS ECR"
-      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
-      action: "Run services"
-      detached: true
-
-  # Ensure the API is up and running
-  - script: |
-      echo "Waiting for services to be up"
-      sleep 30  # Wait for services to be up
-      docker ps -a  # List running containers for debugging
-      echo "Checking if APIs are reachable"
-      curl -v http://localhost:5001/api/health  # Adjust the URL and endpoint to your API's health check
-      curl -v http://localhost:5002/api/health  # Adjust the URL and endpoint to your API's health check
-    displayName: "Check if APIs are reachable"
-
-  - task: DockerCompose@0
-    inputs:
-      containerregistrytype: "Container Registry"
-      dockerRegistryEndpoint: "AWS ECR"
-      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
-      action: "Down services"
+  vampi-vulnerable:
+    image: 491489166083.dkr.ecr.eu-west-1.amazonaws.com/mr10usd:vampi-vulnerable-latest
+    build: ./
+    container_name: vampi-vulnerable
+    ports:
+      - 5002:5000
+    environment:
+      - vulnerable=1
