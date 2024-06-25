@@ -20,11 +20,20 @@ steps:
       aws --version
     displayName: "Check and Install AWS CLI if necessary"
 
+  # Debug step to check if AWS credentials are available
+  - script: |
+      echo "AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID"
+      echo "AWS_SECRET_ACCESS_KEY is set: ${AWS_SECRET_ACCESS_KEY+yes}" || echo "AWS_SECRET_ACCESS_KEY is not set"
+    displayName: "Debug AWS Credentials"
+    env:
+      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+
   - script: |
       echo "Configuring AWS credentials"
-      aws configure set aws_access_key_id $(AWS_ACCESS_KEY_ID)
-      aws configure set aws_secret_access_key $(AWS_SECRET_ACCESS_KEY)
-      aws configure set default.region $(AWS_REGION)
+      aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+      aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+      aws configure set default.region $AWS_REGION
     displayName: "Configure AWS Credentials"
     env:
       AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
@@ -32,14 +41,29 @@ steps:
 
   - script: |
       echo "Logging into AWS ECR"
-      aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+      aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
     displayName: "AWS ECR Login"
+    env:
+      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+
+  # New step to list files and confirm the presence of docker-compose.yml
+  - script: |
+      echo "Listing files in the source directory"
+      ls -la $(Build.SourcesDirectory)
+    displayName: "List files in source directory"
+
+  # New step to display the contents of docker-compose.yml for debugging
+  - script: |
+      echo "Displaying contents of docker-compose.yml"
+      cat $(Build.SourcesDirectory)/$(COMPOSE_FILE)
+    displayName: "Display docker-compose.yml contents"
 
   - task: DockerCompose@0
     inputs:
       containerregistrytype: "Container Registry"
       dockerRegistryEndpoint: "AWS ECR"
-      dockerComposeFile: "$(COMPOSE_FILE)"
+      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
       action: "Build services"
       addPipelineDataVolumes: false
 
@@ -47,7 +71,7 @@ steps:
     inputs:
       containerregistrytype: "Container Registry"
       dockerRegistryEndpoint: "AWS ECR"
-      dockerComposeFile: "$(COMPOSE_FILE)"
+      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
       action: "Run services"
       detached: true
 
@@ -62,12 +86,12 @@ steps:
     inputs:
       containerregistrytype: "Container Registry"
       dockerRegistryEndpoint: "AWS ECR"
-      dockerComposeFile: "$(COMPOSE_FILE)"
+      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
       action: "Push services"
 
   - task: DockerCompose@0
     inputs:
       containerregistrytype: "Container Registry"
       dockerRegistryEndpoint: "AWS ECR"
-      dockerComposeFile: "$(COMPOSE_FILE)"
+      dockerComposeFile: "$(Build.SourcesDirectory)/$(COMPOSE_FILE)"
       action: "Down services"
