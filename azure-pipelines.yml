@@ -48,16 +48,20 @@ steps:
       AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
       AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
 
-  # New step to list all files in the source directory and subdirectories
+  # New step to list all files in the build directory and subdirectories
   - script: |
-      echo "Listing all files in the source directory and subdirectories"
+      echo "Listing all files in the build directory and subdirectories"
       find $(Build.SourcesDirectory) -type f
-    displayName: "List all files in source directory and subdirectories"
+    displayName: "List all files in build directory and subdirectories"
 
   # New step to display the contents of docker-compose.yml for debugging
   - script: |
       echo "Displaying contents of docker-compose.yml"
-      cat $(Build.SourcesDirectory)/$(COMPOSE_FILE)
+      if [ -f "$(Build.SourcesDirectory)/$(COMPOSE_FILE)" ]; then
+        cat $(Build.SourcesDirectory)/$(COMPOSE_FILE)
+      else
+        echo "File not found: $(Build.SourcesDirectory)/$(COMPOSE_FILE)"
+      fi
     displayName: "Display docker-compose.yml contents"
 
   - task: DockerCompose@0
