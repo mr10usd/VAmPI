@@ -34,6 +34,9 @@ steps:
       echo "Logging into AWS ECR"
       aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
     displayName: "AWS ECR Login"
+    env:
+      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
 
   # New step to list files and confirm the presence of docker-compose.yml
   - script: |
